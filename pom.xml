@@ -47,7 +47,8 @@
         <project.build.outputTimestamp>2026-11-20T09:29:54Z</project.build.outputTimestamp>
 
         <pmd.designer.version>${project.version}</pmd.designer.version> <!-- see DesignerVersion -->
-        <pmd.core.version>7.0.0</pmd.core.version> <!-- minimum supported PMD version (API) -->
+<!--        <pmd.core.version>7.0.0</pmd.core.version> &lt;!&ndash; minimum supported PMD version (API) &ndash;&gt;-->
+        <pmd.core.version>7.30.0-SNAPSHOT</pmd.core.version> <!-- minimum supported PMD version (API) -->
 
         <openjfx.version>17.0.17</openjfx.version>
         <!--
@@ -125,6 +126,109 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.8.0</version>
+                <executions>
+                    <execution>
+                        <id>add-generated-sources</id>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${jflex-output}</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>add-java9-source-dir</id>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/src/main/java9</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.16.0</version>
+                <configuration>
+                    <useIncrementalCompilation>false</useIncrementalCompilation>
+                    <compilerArgs>
+                        <!-- allow qualified exports name modules that are not observable;
+                             e.g. we export our main package to net.sourceforce.pmd.cli,
+                             which we don't have in the dependencies
+                        -->
+                        <arg>-Xlint:-module</arg>
+                    </compilerArgs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <configuration>
+                            <!-- module-info.java needs release 9, it is compiled by the compile-java9 execution -->
+                            <excludes>
+                                <exclude>module-info.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>compile-java9</id>
+                        <phase>compile</phase>
+                        <goals><goal>compile</goal></goals>
+                        <configuration>
+                            <release>9</release>
+                            <includes>
+                                <include>module-info.java</include>
+                            </includes>
+                            <compilerArgs combine.children="append">
+                                <!-- the module's classes are compiled by the java-compile execution;
+                                     patch them in, so that the exports clauses resolve -->
+                                <arg>--patch-module</arg>
+                                <arg>net.sourceforge.pmd.util.fxdesigner=${project.build.outputDirectory}</arg>
+
+                                <arg>--add-exports=javafx.fxml/com.sun.javafx.fxml.builder=net.sourceforge.pmd.util.fxdesigner</arg>
+                                <arg>--add-exports=javafx.graphics/com.sun.javafx.application=net.sourceforge.pmd.util.fxdesigner</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${javadoc.plugin.version}</version>
+                <configuration>
+                    <quiet>true</quiet>
+                    <doclint>none</doclint>
+                    <additionalJOptions>
+                        <additionalJOption>-html5</additionalJOption>
+                    </additionalJOptions>
+                    <!-- override the inherited maven.compiler.release=8 -->
+                    <release>9</release>
+                    <!-- both roots on the sourcepath so javadoc runs in single-module mode -->
+                    <sourcepath>${project.basedir}/src/main/java${path.separator}${project.basedir}/src/main/java9</sourcepath>
+                    <additionalOptions>
+                        <additionalOption>--add-exports=javafx.fxml/com.sun.javafx.fxml.builder=net.sourceforge.pmd.util.fxdesigner</additionalOption>
+                        <additionalOption>--add-exports=javafx.graphics/com.sun.javafx.application=net.sourceforge.pmd.util.fxdesigner</additionalOption>
+                    </additionalOptions>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <phase>package</phase>
+                    </execution>
+                </executions>
+            </plugin>
 
             <!-- Kotlin compiler for test-compile -->
             <!-- The kotlin plugin has to run before the java plugin-->
@@ -151,15 +255,6 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.16.0</version>
-                <configuration>
-                    <useIncrementalCompilation>false</useIncrementalCompilation>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire.version}</version>
                 <configuration>
@@ -168,6 +263,10 @@
                         <kotest.framework.classpath.scanning.config.disable>true</kotest.framework.classpath.scanning.config.disable>
                         <kotest.framework.classpath.scanning.autoscan.disable>true</kotest.framework.classpath.scanning.autoscan.disable>
                     </systemProperties>
+                    <!--
+                         Run the tests on the classpath, not on the module path.
+                    -->
+                    <useModulePath>false</useModulePath>
                 </configuration>
 
                 <dependencies>
@@ -184,25 +283,6 @@
                         <version>${kotest.version}</version>
                     </dependency>
                 </dependencies>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.8.0</version>
-                <executions>
-                    <execution>
-                        <id>add-generated-sources</id>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${jflex-output}</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
 
             <!-- Compiles Less files into CSS files. Currently compatible with Less 1.7.0 -->
@@ -279,7 +359,11 @@
                     <linkXRef>false</linkXRef>
                     <minimumTokens>100</minimumTokens>
                     <targetJdk>${maven.compiler.release}</targetJdk>
-                    <excludeRoots>${jflex-output}</excludeRoots>
+                    <excludeRoots>
+                        <excludeRoot>${jflex-output}</excludeRoot>
+                        <!-- module-info.java can't be parsed with targetJdk 8 -->
+                        <excludeRoot>${project.basedir}/src/main/java9</excludeRoot>
+                    </excludeRoots>
                     <rulesets>
                         <ruleset>config/pmd-check.xml</ruleset>
                     </rulesets>
@@ -332,27 +416,6 @@
                         <manifestFile>${project.basedir}/src/main/resources/META-INF/MANIFEST.MF</manifestFile>
                     </archive>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${javadoc.plugin.version}</version>
-                <configuration>
-                    <quiet>true</quiet>
-                    <doclint>none</doclint>
-                    <additionalJOptions>
-                        <additionalJOption>-html5</additionalJOption>
-                    </additionalJOptions>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <phase>package</phase>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>
@@ -459,6 +522,11 @@
                                         <exclude>org.openjfx:*</exclude>
                                         <!-- we compile against controlsfx 11.x. CI job check-controlsfx8 tests Java8 compatibility -->
                                         <exclude>org.controlsfx:controlsfx</exclude>
+                                        <!-- pmd-groovy already uses groovy 5.x, which requires at least java 11 -->
+                                        <exclude>org.apache.groovy:groovy</exclude>
+                                        <!-- pmd-kotlin uses kotlin-type-mapper which requires at least java 17 -->
+                                        <exclude>nl.stokpop.typemapper:kotlin-type-mapper-model</exclude>
+                                        <exclude>nl.stokpop.typemapper:kotlin-type-mapper-analyzer</exclude>
                                     </excludes>
                                     <ignoreClasses>
                                         <!-- asm dependency contains a java9 module-info.class -->
@@ -631,6 +699,11 @@
             <groupId>com.github.oowekyala</groupId>
             <artifactId>fx-live-templates</artifactId>
             <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.reactfx</groupId>
+            <artifactId>reactfx</artifactId>
+            <version>2.0-M5</version>
         </dependency>
 
         <dependency>
@@ -815,11 +888,58 @@
             <id>running</id>
             <properties>
                 <openjfx.scope>compile</openjfx.scope>
-                <pmd.java.opts />
+                <run.classpath.artifacts>apex-ls_2.13,better-files_2.13,common_2.13,common2_2.13,directory-watcher-better-files_2.13,geny_2.13,io_2.13,mainargs_2.13,outline-parser_2.13,parsers_2.13,portable-scala-reflect_2.13,scala-collection-compat_2.13,scala-json-rpc_2.13,scala-json-rpc-upickle-json-serializer_2.13,scalajs-stubs_2.13,scala-parallel-collections_2.13,scala-xml_2.13,sourcecode_2.13,trees_2.13,trees2_2.13,ujson_2.13,upack_2.13,upickle_2.13,upickle-core_2.13,upickle-implicits_2.13</run.classpath.artifacts>
+                <maven.test.skip>true</maven.test.skip>
+                <pmd.java.opts/>
             </properties>
             <build>
-                <defaultGoal>exec:exec</defaultGoal>
+                <defaultGoal>clean:clean@clean-run dependency:copy-dependencies@modulepath-deps dependency:copy-dependencies@classpath-deps exec:exec</defaultGoal>
                 <plugins>
+                    <plugin>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>clean-run</id>
+                                <phase>none</phase>
+                                <goals><goal>clean</goal></goals>
+                                <configuration>
+                                    <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                                    <filesets>
+                                        <fileset>
+                                            <directory>${project.build.directory}/run</directory>
+                                        </fileset>
+                                    </filesets>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>3.11.0</version>
+                        <executions>
+                            <execution>
+                                <id>modulepath-deps</id>
+                                <phase>none</phase>
+                                <goals><goal>copy-dependencies</goal></goals>
+                                <configuration>
+                                    <includeScope>runtime</includeScope>
+                                    <outputDirectory>${project.build.directory}/run/modules</outputDirectory>
+                                    <excludeArtifactIds>${run.classpath.artifacts}</excludeArtifactIds>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>classpath-deps</id>
+                                <phase>none</phase>
+                                <goals><goal>copy-dependencies</goal></goals>
+                                <configuration>
+                                    <includeScope>runtime</includeScope>
+                                    <outputDirectory>${project.build.directory}/run/classpath</outputDirectory>
+                                    <includeArtifactIds>${run.classpath.artifacts}</includeArtifactIds>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
@@ -828,22 +948,37 @@
                             <executable>java</executable>
                             <classpathScope>runtime</classpathScope>
                             <commandlineArgs>
-                                ${pmd.java.opts}
-                                --add-opens javafx.controls/javafx.scene.control.skin=ALL-UNNAMED
-                                --add-opens javafx.fxml/com.sun.javafx.fxml.builder=ALL-UNNAMED
-                                --add-opens javafx.graphics/javafx.scene.text=ALL-UNNAMED
-                                --add-opens javafx.graphics/com.sun.javafx.scene.text=ALL-UNNAMED
-                                --add-opens javafx.graphics/com.sun.javafx.text=ALL-UNNAMED
-                                --add-opens javafx.graphics/com.sun.javafx.geom=ALL-UNNAMED
-                                --add-opens javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED
-                                --add-opens javafx.base/com.sun.javafx.runtime=ALL-UNNAMED
-                                --add-opens javafx.base/com.sun.javafx.event=ALL-UNNAMED
-                                --add-opens javafx.graphics/com.sun.javafx.scene.traversal=ALL-UNNAMED
-
-                                -cp %classpath
-                                net.sourceforge.pmd.util.fxdesigner.DesignerStarter
+                                ${pmd.java.opts} --module-path ${project.build.outputDirectory}${path.separator}${project.build.directory}/run/modules
+                                --class-path ${project.build.directory}/run/classpath/*
+                                --add-opens javafx.controls/javafx.scene.control.skin=org.apache.commons.lang3
+                                --add-opens javafx.fxml/com.sun.javafx.fxml.builder=net.sourceforge.pmd.util.fxdesigner
+                                --add-opens javafx.graphics/javafx.scene.text=richtextfx
+                                --add-opens javafx.graphics/com.sun.javafx.scene.text=richtextfx
+                                --add-opens javafx.graphics/com.sun.javafx.text=richtextfx
+                                --add-opens javafx.graphics/com.sun.javafx.geom=richtextfx
+                                --module net.sourceforge.pmd.util.fxdesigner/net.sourceforge.pmd.util.fxdesigner.DesignerStarter
                                 --verbose
                             </commandlineArgs>
+<!--                            <arguments>-->
+<!--                                <argument>-Dprism.order=sw</argument>-->
+<!--                                <argument>&#45;&#45;module-path=${project.build.outputDirectory}${path.separator}${project.build.directory}/run/modules</argument>-->
+<!--                                <argument>&#45;&#45;class-path=${project.build.directory}/run/classpath/*</argument>-->
+<!--                                <argument>&#45;&#45;add-opens</argument>-->
+<!--                                <argument>javafx.controls/javafx.scene.control.skin=org.apache.commons.lang3</argument>-->
+<!--                                <argument>&#45;&#45;add-opens</argument>-->
+<!--                                <argument>javafx.fxml/com.sun.javafx.fxml.builder=net.sourceforge.pmd.util.fxdesigner</argument>-->
+<!--                                <argument>&#45;&#45;add-opens</argument>-->
+<!--                                <argument>javafx.graphics/javafx.scene.text=richtextfx</argument>-->
+<!--                                <argument>&#45;&#45;add-opens</argument>-->
+<!--                                <argument>javafx.graphics/com.sun.javafx.scene.text=richtextfx</argument>-->
+<!--                                <argument>&#45;&#45;add-opens</argument>-->
+<!--                                <argument>javafx.graphics/com.sun.javafx.text=richtextfx</argument>-->
+<!--                                <argument>&#45;&#45;add-opens</argument>-->
+<!--                                <argument>javafx.graphics/com.sun.javafx.geom=richtextfx</argument>-->
+<!--                                <argument>&#45;&#45;module</argument>-->
+<!--                                <argument>net.sourceforge.pmd.util.fxdesigner/net.sourceforge.pmd.util.fxdesigner.DesignerStarter</argument>-->
+<!--                                <argument>&#45;&#45;verbose</argument>-->
+<!--                            </arguments>-->
                         </configuration>
                     </plugin>
                 </plugins>
@@ -904,7 +1039,21 @@
             <id>check-controlsfx8</id>
             <properties>
                 <controlsfx.version>8.40.18</controlsfx.version>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
             </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>compile-java9</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 

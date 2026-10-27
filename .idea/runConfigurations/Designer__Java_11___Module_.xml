@@ -6,11 +6,10 @@
       <env name="JAVAFX_HOME" value="$USER_HOME$/CHANGE_ME/PATH_TO/javafx-sdk-17.0.17" />
       <env name="PMD_JAVA_OPTS" value="" />
     </envs>
-    <option name="INCLUDE_PROVIDED_SCOPE" value="true" />
     <option name="MAIN_CLASS_NAME" value="net.sourceforge.pmd.util.fxdesigner.DesignerStarter" />
-    <module name="pmd-designer" />
-    <option name="PROGRAM_PARAMETERS" value="-v" />
-    <option name="VM_PARAMETERS" value="$PMD_JAVA_OPTS$ --add-opens javafx.controls/javafx.scene.control.skin=ALL-UNNAMED --add-opens javafx.fxml/com.sun.javafx.fxml.builder=ALL-UNNAMED --add-opens javafx.graphics/javafx.scene.text=ALL-UNNAMED --add-opens javafx.graphics/com.sun.javafx.scene.text=ALL-UNNAMED --add-opens javafx.graphics/com.sun.javafx.text=ALL-UNNAMED --add-opens javafx.graphics/com.sun.javafx.geom=ALL-UNNAMED --add-opens javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED --add-opens javafx.base/com.sun.javafx.runtime=ALL-UNNAMED --add-opens javafx.base/com.sun.javafx.event=ALL-UNNAMED --add-opens javafx.graphics/com.sun.javafx.scene.traversal=ALL-UNNAMED --illegal-access=warn --module-path $JAVAFX_HOME$/lib --add-modules javafx.controls,javafx.fxml" />
+    <module name="pmd-designer.main" />
+    <option name="PROGRAM_PARAMETERS" value="--verbose" />
+    <option name="VM_PARAMETERS" value="$PMD_JAVA_OPTS$ --add-opens javafx.controls/javafx.scene.control.skin=org.apache.commons.lang3 --add-opens javafx.fxml/com.sun.javafx.fxml.builder=net.sourceforge.pmd.util.fxdesigner --add-opens javafx.graphics/javafx.scene.text=richtextfx --add-opens javafx.graphics/com.sun.javafx.scene.text=richtextfx --add-opens javafx.graphics/com.sun.javafx.text=richtextfx --add-opens javafx.graphics/com.sun.javafx.geom=richtextfx --illegal-access=warn --module-path $JAVAFX_HOME$/lib:$ProjectFileDir$/target/classes:$ProjectFileDir$/target/run/modules" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.sourceforge.pmd.util.fxdesigner.app.*" />
@@ -20,6 +19,7 @@
     <method v="2">
       <option name="Make" enabled="true" />
       <option name="Maven.BeforeRunTask" enabled="true" file="$PROJECT_DIR$/pom.xml" goal="process-resources" />
+      <option name="Maven.BeforeRunTask" enabled="true" file="$PROJECT_DIR$/pom.xml" goal="-Prunning dependency:copy-dependencies@modulepath-deps dependency:copy-dependencies@classpath-deps" />
     </method>
   </configuration>
 </component>

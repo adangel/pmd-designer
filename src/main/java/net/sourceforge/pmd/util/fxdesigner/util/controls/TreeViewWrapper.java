@@ -146,7 +146,7 @@ class TreeViewWrapper<T> {
 
                 System.out.println();
                 System.out.println("On JRE 9+, the following VM argument makes the controls smarter:");
-                System.out.println("--add-opens javafx.controls/javafx.scene.control.skin=ALL-UNNAMED");
+                System.out.println("--add-opens javafx.controls/javafx.scene.control.skin=org.apache.commons.lang3");
                 System.out.println("Please consider adding it to your command-line or using the launch script bundled with PMD's binary distribution.");
 
                 reflectionImpossibleWarning = true;

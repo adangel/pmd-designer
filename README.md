@@ -21,28 +21,20 @@ rules. Main features:
 The designer is part of PMD's binary distributions. To install a distribution, see the
 [documentation page](https://docs.pmd-code.org/latest/pmd_userdocs_installation.html) about installing PMD.
 
-The app needs either Oracle Java 8 (which includes JavaFX) or OpenJDK 11+ and a separately installed
+The app needs either Oracle Java 8 (which includes JavaFX before 8u451) or OpenJDK 11+ and a separately installed
 OpenJFX distribution. Visit [JavaFX - Gluon](https://gluonhq.com/products/javafx/) to download an SDK distribution,
 extract it, and set the `JAVAFX_HOME` environment variable.
 
 If the `bin` directory of your PMD distribution is on your shell's path, then you can **launch the app** with
-* `pmd designer` on Linux/ OSX
+* `pmd designer` on Linux/MacOS
 * `pmd.bat designer` on Windows
 
-Alternatively, you can launch the program "from source" with Maven. There are two different ways
-1. If you are running an OpenJDK build *without* JavaFX bundled:  
-  `$ ./mvnw -Prunning` will launch the Designer with the JavaFX dependencies on the classpath.  
-  Note: JavaFX will be on the classpath and not module path, which might behave a bit differently.  
-  You can change the version of those dependencies with e.g. `-Dopenjfx.version=21.0.9` for OpenJFX 21.
-  See the list of available versions [here](https://search.maven.org/artifact/org.openjfx/javafx).
+Alternatively, you can launch the program "from source" with Maven.
+`$ ./mvnw -Prunning` will launch the Designer after compiling it and preparing the module path and classpath.
 
-2. If you are running an OpenJDK build *with* JavaFX bundled (e.g. Azul Zulu, Bellsoft Liberica):  
-  `$ ./mvnw -Prunning -Dopenjfx.scope=provided` will launch the Designer without putting the JavaFX
-  dependencies on the classpath.  
-  Note: JavaFX will be on the module path and several packages need to be opened for reflection.
-  This has been taken care in the exec plugin configuration in the maven profile `running`.
-  Depending on the Java version, you might need additionally
-  `MAVEN_OPTS="--enable-native-access=javafx.graphics --sun-misc-unsafe-memory-access=allow"`.
+Note: JavaFX will be on the module path. If you run an OpenJFX build with JavaFX bundled, you cannot change
+the JavaFX version. Otherwise, you can run with a specific JavaFX version with `-Dopenjfx.version=21.0.12`
+for OpenJFX 21. See the list of available versions [here](https://central.sonatype.com/artifact/org.openjfx/javafx/versions).
 
 In both cases, ControlsFX 11.x is put on the classpath by the maven profile `running`.
 

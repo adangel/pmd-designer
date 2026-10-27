@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.util.Optional;
 import java.util.Properties;
 
-import net.sourceforge.pmd.PMDVersion;
 import net.sourceforge.pmd.util.fxdesigner.util.ResourceUtil;
 
 /**
@@ -45,7 +44,7 @@ public final class DesignerVersion {
     }
 
     private static Optional<String> readProperty(String resourcePath, String key) {
-        try (InputStream stream = PMDVersion.class.getResourceAsStream(resourcePath)) {
+        try (InputStream stream = DesignerVersion.class.getResourceAsStream(resourcePath)) {
             if (stream != null) {
                 final Properties properties = new Properties();
                 properties.load(stream);

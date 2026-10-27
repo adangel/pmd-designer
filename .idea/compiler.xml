@@ -6,11 +6,21 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="pmd-designer" />
+      </profile>
+      <profile name="Annotation profile for PMD Designer" enabled="true">
+        <sourceOutputDir name="../generated-sources/annotations" />
+        <sourceTestOutputDir name="../generated-test-sources/test-annotations" />
+        <module name="pmd-designer.main" />
+        <module name="pmd-designer.test" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="PREFER_TARGET_JDK_COMPILER" value="false" />
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="pmd-designer" options="-Xlint:-module" />
+      <module name="pmd-designer.main" options="-Xlint:-module --add-exports javafx.fxml/com.sun.javafx.fxml.builder=net.sourceforge.pmd.util.fxdesigner --add-exports javafx.graphics/com.sun.javafx.application=net.sourceforge.pmd.util.fxdesigner" />
+      <module name="pmd-designer.test" options="-Xlint:-module" />
+    </option>
   </component>
 </project>
